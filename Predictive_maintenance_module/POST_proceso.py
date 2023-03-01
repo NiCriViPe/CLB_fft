@@ -66,13 +66,12 @@ def PSD(v):
 
     t1  =   time.time()
     dat =   read_csv(yt,header=0)
-
     x1  =  dat.values[:,0]
     dt  = x1[1] - x1[0]
     fs  = 1 / dt
     #fs  =   20e3
     y1  = dat.values[:,1]
-    Ntrunc =    2.8
+    Ntrunc =    28
     print('Ntrunc:',Ntrunc)
     sy  =   len(y1)
     
@@ -659,7 +658,7 @@ def compara_plot_PSD(lista_de_archivos):
         df = read_csv(v)
         # aux = v.split("/")[-1].split("_")
         aux = v.split("/")
-        auxlabel = aux[-4]+aux[-3]
+        auxlabel = ' '.join(aux[-4:-1])
         ax1.plot(df.values[:,0],df.values[:,1],
                 alpha=0.5,label=auxlabel)
                 #  alpha=0.5,label=' '.join(aux[0:4]))
