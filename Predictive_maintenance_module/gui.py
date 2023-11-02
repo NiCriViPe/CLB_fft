@@ -4,18 +4,18 @@
 
 
 from pathlib import Path
-from POST_proceso import *
+# from POST_proceso import *
+import POST_proceso as pp
 # from tkinter import *
 # Explicit imports to satisfy Flake8
-from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
+from tkinter import Tk, Canvas, Button, PhotoImage
+from tkinter import filedialog,simpledialog
 
 
 
 OUTPUT_PATH = Path(__file__).parent
-# ASSETS_PATH = OUTPUT_PATH / Path(r"C:\Users\vidal\Documents\GitHub\Tkinter-Designer\build\assets\frame0")
 ASSETS_PATH =   Path(str(OUTPUT_PATH)+r"\assets\frame0")
 # INIT_PATH   =   OUTPUT_PATH.parent.parent
-# INIT_PATH   =   Path(r"C:\Users\vidal\Desktop\_Codes\+Med\ENsayos_rodamientos")
 INIT_PATH   =  OUTPUT_PATH
 
 
@@ -76,7 +76,21 @@ button_1 = Button(
     borderwidth=0,
     highlightthickness=0,
     # command=lambda: print("button_1 clicked"),
-    command     =lambda: ejecutar(filedialog.askopenfilename(initialdir = INIT_PATH,title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))),
+
+    command     =lambda:
+        [pp.ejecutar(
+        filedialog.askopenfilename(
+            initialdir = INIT_PATH,
+            title = "Select file",
+            filetypes = (("csv files","*.csv"),("all files","*.*"))))
+         
+         ]
+        ,        
+    # command     =lambda: pp.ejecutar(
+    #     filedialog.askopenfilename(
+    #         initialdir = INIT_PATH,
+    #         title = "Select file",
+    #         filetypes = (("csv files","*.csv"),("all files","*.*")))),
     relief="flat"
 )
 button_1.place(
@@ -93,7 +107,9 @@ button_2 = Button(
     borderwidth=0,
     highlightthickness=0,
     #command=lambda: print("button_2 clicked"),
-    command=lambda: comparar_PSD(simpledialog.askinteger("Comparar FFT's", "N° de archivos a comparar")),
+    command=lambda: pp.comparar_PSD(
+        simpledialog.askinteger(
+            "Comparar FFT's", "N° de archivos a comparar")),
     relief="flat",
     #state="disabled"
 )
@@ -111,7 +127,11 @@ button_3 = Button(
     borderwidth=0,
     highlightthickness=0,
     # command=lambda: print("button_3 clicked"),
-    command=lambda: low_freq_fft(filedialog.askopenfilename(initialdir = INIT_PATH,title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))),
+    command=lambda: pp.low_freq_fft(
+        filedialog.askopenfilename(
+            initialdir = INIT_PATH,
+            title = "Select file",
+            filetypes = (("csv files","*.csv"),("all files","*.*")))),
     relief="flat",
     # state="disabled"
 )
@@ -129,7 +149,11 @@ button_4 = Button(
     borderwidth=0,
     highlightthickness=0,
     # command=lambda: print("button_4 clicked"),
-    command=lambda: high_freq_fft(filedialog.askopenfilename(initialdir = INIT_PATH,title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))),
+    command=lambda: pp.high_freq_fft(
+        filedialog.askopenfilename(
+            initialdir = INIT_PATH,
+            title = "Select file",
+            filetypes = (("csv files","*.csv"),("all files","*.*")))),
     relief="flat",
     # state="disabled"
 )
@@ -147,7 +171,11 @@ button_5 = Button(
     borderwidth=0,
     highlightthickness=0,
     # command=lambda: print("button_5 clicked"),
-    command=lambda: PSD(filedialog.askopenfilename(initialdir = INIT_PATH,title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))),
+    command=lambda: pp.PSD(
+        filedialog.askopenfilename(
+            initialdir = INIT_PATH,
+            title = "Select file",
+            filetypes = (("csv files","*.csv"),("all files","*.*")))),
     relief="flat",
     # state="disabled"
 )
