@@ -7,3 +7,4 @@ Predictive_maintenance_module/output_004.csv
 Predictive_maintenance_module/output_001_y-t_DATA.csv
 Predictive_maintenance_module/output_001.csv
 *.csv
+/venv
