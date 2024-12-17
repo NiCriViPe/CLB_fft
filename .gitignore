@@ -1,10 +1,4 @@
 
 Predictive_maintenance_module/__pycache__/POST_proceso.cpython-311.pyc
-Predictive_maintenance_module/output.csv
-Predictive_maintenance_module/output_002.csv
-Predictive_maintenance_module/output_003.csv
-Predictive_maintenance_module/output_004.csv
-Predictive_maintenance_module/output_001_y-t_DATA.csv
-Predictive_maintenance_module/output_001.csv
 *.csv
 /venv
