@@ -11,6 +11,9 @@ from pandas import read_csv,DataFrame,concat
 ##  Numpy
 from numpy import linspace,size,array,diff
 from numpy import log10
+from numpy.fft import rfft, rfftfreq
+from scipy.signal import decimate as sp_decimate
+from scipy.signal.windows import hann
 ##  Scipy
 from scipy.fftpack import fft
 from scipy.signal import find_peaks,welch
@@ -57,8 +60,33 @@ from matplotlib.pyplot import rcParams
 #         self.y_t =None
 #         self.FFT =None
 #     @staticmethod
+def _cancelado(v):
+    """True si el usuario cerró el diálogo sin elegir archivo."""
+    if not v:
+        print('Operación cancelada: no se seleccionó archivo')
+        return True
+    return False
+
+
+def _asegurar_yt(v):
+    """Genera el archivo _y-t_DATA.csv si aún no existe."""
+    if not os.path.isfile(v.replace(".csv","_y-t_DATA.csv")):
+        ejecutar(v)
+
+
+def _espectro_amplitud(y, fs):
+    """Espectro de amplitud (pico) con ventana Hann y eje de frecuencia exacto."""
+    y = array(y, dtype=float)
+    y = y - y.mean()
+    w = hann(len(y), sym=False)
+    yf = 2.0 * abs(rfft(y * w)) / w.sum()
+    return rfftfreq(len(y), 1.0 / fs), yf
+
+
 def ejecutar(name):
     # En proceso de convertirse en "PREPROCESADO"
+    if _cancelado(name):
+        return None
     t1=time.time()     
     # [ruta,texto_1]  =   Integracion_de_archivos(v)
     # dat = read_csv(ruta,header=0)
@@ -95,8 +123,9 @@ def YT2CSV(t,y,name):
     print(p1)
     return    
 def PSD(v):
-    if  (os.path.isfile(v.replace(".csv","_y-t_DATA.csv"))) is False:
-        ejecutar(v)
+    if _cancelado(v):
+        return
+    _asegurar_yt(v)
 
     yt  =   v.replace(".csv","_y-t_DATA.csv")
 
@@ -112,7 +141,7 @@ def PSD(v):
     sy  =   len(y1)
     
     # f, Pxxf = welch(y1,fs=fs,nperseg=sy/Ntrunc,detrend=False,average='median')
-    f, Pxxf = welch(y1,fs=fs,nperseg=sy/Ntrunc,detrend=False,average='median')
+    f, Pxxf = welch(y1,fs=fs,nperseg=int(sy//Ntrunc),detrend=False,average='median')
     label   = v.split("/")[-1]
     Title   = v.split("/")[-2]
     Pxxf    = Pxxf/max(Pxxf)
@@ -123,7 +152,7 @@ def PSD(v):
     grid(True,'both')
     minorticks_on()
     ylim([-120,0])
-    ylabel("PSD [dB/Hz]")
+    ylabel("PSD [dB rel. máx.]")
     xlabel("Frequency [Hz]")
     print('del_f:',f[2]-f[1],'[Hz]')
     PSD2CSV(f,10*log10(Pxxf),v)
@@ -142,6 +171,9 @@ def PSD(v):
     return
 
 def low_freq_fft(v):
+    if _cancelado(v):
+        return
+    _asegurar_yt(v)
     yt  =   v.replace(".csv","_y-t_DATA.csv")
     start = time.time()
     print(v)
@@ -173,12 +205,10 @@ def low_freq_fft(v):
         nskip   =   20
         # nskip   =   16     #Aceptable
         # nskip   = 10    #Recomendado
-        auxlist = range(0,N,nskip)
-        #
-        # a1       =   a[auxlist]
-        # y       =   array(a1)
-        a       =   a[auxlist]
-        a       =   array(a)
+        # Decimación con filtro anti-aliasing (antes: a[::nskip], que
+        # pliega las componentes > Fs/(2*nskip) sobre la banda baja)
+        a       =   sp_decimate(sp_decimate(array(a, dtype=float), 4, ftype='fir'),
+                                nskip//4, ftype='fir')
         Fs      =   Fs/nskip
         Ts      =   1/Fs
         t       =   linspace(0,(size(a)-1)*Ts,size(a))
@@ -188,14 +218,8 @@ def low_freq_fft(v):
         print("Points: ",N)
         # auxlist1 = range(0,N//2)
     ##Variables finales
-    Y       = array(a)
-    yf      = fft(Y)
-    xf      = linspace(0.0, 1.0/(2.0*Ts), N//2)
-    print(size(xf),size(yf))
-    yf2     =2.0/N * abs(yf[:N//2])
-    aux1    = len(xf)
-    #yf2 = 100*yf2/aux1
-    yf2     = yf2/aux1
+    xf, yf2 = _espectro_amplitud(a, Fs)
+    yf2     = yf2/max(yf2)          # 0 dB = componente mayor
     a       = a/max(a)
     end1    = time.time()
     fft_time=end1-start
@@ -222,18 +246,18 @@ def low_freq_fft(v):
     # ax1.locator_params(axis='x', nbins=10)
     ##### PLOT FFT
     ax2.set_xlim(0, max(xf))
-    ax2.set_ylim(-70, 0)
+    ax2.set_ylim(-120, 0)
     # ax2.set_ylim(1e-6, 100)
     ax2.set_xlabel('Frecuencia [Hz]')   
     # ax2.set_ylabel('Magnitud relativa [%]')
-    ax2.set_ylabel('FFT [dB]')
+    ax2.set_ylabel('Amplitud [dB rel. máx.]')
     ax2.grid(visible=True, which='minor',
             color='k', linestyle='--',alpha = 0.5)
     ax2.minorticks_on()
     #ax2.semilogy(xf, yf)
     #ax2.plot(xf,yf)
     # ax2.plot(xf,yf2,'r',alpha=0.95,)
-    ax2.plot(xf,10*log10(yf2),'r',alpha=0.95,)
+    ax2.plot(xf,20*log10(yf2),'r',alpha=0.95,)  # amplitud -> 20*log10
     # ax2.stem(xf,yf,'r')
     ax2.locator_params(axis='y', nbins=10)
     ax2.locator_params(axis='x', nbins=10)
@@ -251,6 +275,9 @@ def low_freq_fft(v):
     return 
 
 def high_freq_fft(v):
+    if _cancelado(v):
+        return
+    _asegurar_yt(v)
     yt  =   v.replace(".csv","_y-t_DATA.csv")
     start = time.time()
     print(v)
@@ -297,14 +324,8 @@ def high_freq_fft(v):
         print("Points: ",N)
         # auxlist1 = range(0,N//2)
     ##Variables finales
-    Y       = array(a)
-    yf      = fft(Y)
-    xf      = linspace(0.0, 1.0/(2.0*Ts), N//2)
-    print(size(xf),size(yf))
-    yf2     =2.0/N * abs(yf[:N//2])
-    aux1    = max(yf2)
-    #yf2 = 100*yf2/aux1
-    yf2     = yf2/aux1
+    xf, yf2 = _espectro_amplitud(a, Fs)
+    yf2     = yf2/max(yf2)          # 0 dB = componente mayor
     a       = a/max(a)
     end1    = time.time()
     fft_time=end1-start
@@ -331,17 +352,17 @@ def high_freq_fft(v):
     # ax1.locator_params(axis='x', nbins=10)
     ##### PLOT FFT
     ax2.set_xlim(0, max(xf))
-    ax2.set_ylim(-70, 0)
+    ax2.set_ylim(-120, 0)
     # ax2.set_ylim(1e-6, 100)
     ax2.set_xlabel('Frecuencia [Hz]')
     # ax2.set_ylabel('Magnitud relativa [%]')
-    ax2.set_ylabel('FFT [dB]')
+    ax2.set_ylabel('Amplitud [dB rel. máx.]')
     ax2.grid(visible=True, which='minor', color='k', linestyle='--',alpha = 0.5)
     ax2.minorticks_on()
     #ax2.semilogy(xf, yf)
     #ax2.plot(xf,yf)
     # ax2.plot(xf,yf2,'r',alpha=0.95,)
-    ax2.plot(xf,10*log10(yf2),'r',alpha=0.95,)
+    ax2.plot(xf,20*log10(yf2),'r',alpha=0.95,)  # amplitud -> 20*log10
     # ax2.stem(xf,yf,'r')
     ax2.locator_params(axis='y', nbins=10)
     ax2.locator_params(axis='x', nbins=10)
@@ -362,6 +383,8 @@ def harm_growth():
     return
 
 def comparar_FFT(n):
+    if not n:
+        return
     lista_FFT   =   gen_lista_comparar(n)
     compara_plot(lista_FFT)
     # while len(v) != 0:
@@ -370,6 +393,8 @@ def comparar_FFT(n):
     return
 
 def comparar_PSD(n):
+    if not n:
+        return
     lista_PSD   =   gen_lista_comparar(n)
     compara_plot_PSD(lista_PSD)
     # while len(v) != 0:
@@ -407,17 +432,12 @@ def Solo_lectura(s):
     print('Se considerarán los siguientes archivos \n') #GUI
     print(s, end='\n')                                  #GUI
     ####        Proceso de búsqueda de archivos #####
-    flag = True
-    for i in range(1,10):
-        if flag:            
-            if os.path.isfile(s.replace('.csv','_00'+str(i)+'.csv')):
-                aux1 =  s.replace('.csv','_00'+str(i)+'.csv')
-                print(aux1)        
-                # file_list.append(aux1)
-                df_list.append(read_csv(aux1))
-            else:
-                flag = False
-                print('No se encontraron más archivos en el directorio')
+    i = 1
+    while os.path.isfile(aux1 := s[:-4] + f'_{i:03d}.csv'):   # _001 ... _999
+        print(aux1)
+        df_list.append(read_csv(aux1))
+        i += 1
+    print('No se encontraron más archivos en el directorio')
     #####       Procesado/ Integración       ########
     a   =   concat(df_list)
     #Integracion = open(s.replace('.csv','_MERGED.csv'),'w')  #Archivo final, abrir
@@ -668,7 +688,8 @@ def gen_lista_comparar(n):
             initialdir = OUTPUT_PATH,
             title = "Select file",
             filetypes = (("csv files","*.csv"),("all files","*.*")))
-        lista_de_archivos.append(v)
+        if v:
+            lista_de_archivos.append(v)
     return lista_de_archivos
 
 def compara_plot(lista_de_archivos):

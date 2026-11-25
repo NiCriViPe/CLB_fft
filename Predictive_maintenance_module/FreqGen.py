@@ -22,15 +22,16 @@ def broken_bar_frequencies(
     )->list:    
     """
     Returns a list of 2*N frequency components
-    associated to the sidebands of broken bars
+    associated to the sidebands of broken bars: fgrid*(1 +/- 2ks), k=1..N
+    fgrid: Grid frequency
     s: slip (per unit)
     N: Number of harmonics to consider
     """
     out = list()
-    for i in range(1,N):
+    for i in range(1,N+1):
         x = s*i
-        frecm = (1-2*x)*50
-        frecp = (1+2*x)*50
+        frecm = (1-2*x)*fgrid
+        frecp = (1+2*x)*fgrid
         out.append(frecm)
         out.append(frecp)
     return out
