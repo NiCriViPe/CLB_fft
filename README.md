@@ -1,35 +1,123 @@
-# CLB_fft
-Código para integración de mediciones HIOKI PQONE y análisis espectral
+# CLB_fft: motor current signature analysis for HIOKI PQ ONE
 
-Developed around summer 2022 at Nehuenco-Colbún, this project uses a GUI to call python scripts that handles the measurements of the HIOKI PQONE after they are exporten from the vendor's software.
-The main purpose was to apply spectral analysis tools to the measurements of stator currents in induction machines.
-The scope of application is the detection of common faults.
+[![CI](https://github.com/NiCriViPe/CLB_fft/actions/workflows/ci.yml/badge.svg)](https://github.com/NiCriViPe/CLB_fft/actions/workflows/ci.yml)
 
-Diagnosis should (preferably) be done by an electrical engineer capable of interpreting the spectrum of the currents.
+> *Código para integración de mediciones HIOKI PQ ONE y análisis espectral de
+> corrientes de estator para el diagnóstico de motores de inducción.*
 
-Current development is in auto-diagnostic of the following faults:
+Developed around summer 2022 at Nehuenco-Colbún, this project turns stator-current
+waveforms exported from HIOKI's PQ ONE software into spectra that an electrical
+engineer can use to diagnose common induction-machine faults (MCSA: *motor current
+signature analysis*).
 
-1. Static and/or dynamic air-gap irregularities.
-2. Broken rotor bar or cracked rotor end-rings.
-3. Stator faults (opening or shorting of one coil or more of a stator phase winding).
+It contains:
+
+* **`clb_fft`**, a tested Python package and command-line tool (`src/clb_fft`).
+* The original **Tkinter GUI** (`Predictive_maintenance_module/`) for interactive use.
+
+Faults addressed:
+
+1. Static and/or dynamic air-gap irregularities (eccentricity).
+2. Broken rotor bars or cracked end-rings.
+3. Stator faults (open or shorted turns in a phase winding).
 4. Abnormal connection of the stator windings.
-5. Bent shaft (akin to dynamic eccentricity) which can result in a rub between the rotor and stator, causing serious damage to stator core and windings.
-6. Bearing and gearbox failures
+5. Bent shaft (akin to dynamic eccentricity), which can lead to rotor–stator rub.
+6. Bearing and gearbox failures.
 
-## Preview
+Diagnosis should (preferably) be confirmed by an electrical engineer able to
+interpret current spectra. The automatic indicators are aids, not verdicts.
+
+## Quick start
+
+```bash
+python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+
+# Data quality: record joints, supply-frequency drift, usable resolution
+clb-fft quality Measurements/NH-I/MotorConVibracion1.tar.xz
+
+# Full analysis: spectra with fault-frequency markers, peak table, broken-bar indicator
+clb-fft analyze Measurements/NH-I/MotorConVibracion1.tar.xz \
+    --pole-pairs 2 --speed 1485 --rotor-bars 28 --out results/
+```
+
+`analyze` writes `spectrum_low.png`, `spectrum_fundamental.png`, `psd_full.png`,
+`frequency_track.png`, `peaks.csv` (every peak, labelled with its fault family)
+and `summary.json`. Use your machine's nameplate data: the values above are only
+an example.
+
+As a library:
+
+```python
+from clb_fft import load_hioki_csv, averaged_amplitude_spectrum, decimate, Motor
+from clb_fft.diagnosis import assess_broken_bars
+
+rec = load_hioki_csv("path/to/Measurement.csv", channels=["I1"])  # finds _001, _002, ...
+x, fs = decimate(rec["I1"], rec.fs, 20)                             # anti-aliased
+spec = averaged_amplitude_spectrum(x, fs, resolution=0.1)
+motor = Motor.from_speed(f1=50.0, pole_pairs=2, speed_rpm=1485)
+print(assess_broken_bars(spec, motor.f1, motor.slip).summary())
+```
+
+## What the data really looks like
+
+A PQ ONE waveform export is a chain of short **event records** (here 1000 × 0.28 s).
+Some joints between records are discontinuous, and the supply frequency drifts
+during the capture:
+
+![Supply frequency drift](docs/img/supply_frequency.png)
+
+This limits the useful resolution: one 280 s FFT does *not* resolve 0.0036 Hz.
+The comparison below is the same signal, processed the original way and the
+current way:
+
+![Before/after spectrum around f1](docs/img/before_after_f1.png)
+
+`examples/method_comparison.py` regenerates both figures. See
+[`docs/REVIEW.md`](docs/REVIEW.md) for the full review, the bugs fixed, and the
+roadmap.
+
+## Method
+
+| Step | Implementation |
+|---|---|
+| Load | Any number of `_NNN` parts; sampling rate inferred from the 1 ms timestamps |
+| Check | Discontinuous record joints; per-record supply frequency (zero crossings) |
+| Spectrum | Welch-averaged, Hann-windowed amplitude spectrum in peak units; `20·log10` for amplitudes, `10·log10` for PSD |
+| Low band | FIR anti-aliased decimation |
+| Fault frequencies | Broken bars `f1(1±2ks)`; mixed eccentricity `f1±k·fr`; rotor slot / dynamic eccentricity `f1[(kR±nd)(1−s)/p ± nω]`; shorted turns `f1[n(1−s)/p ± k]`; bearings `\|f1 ± m·f_v\|` from geometry |
+| Indicator | Broken-bar sideband level vs. f1 (after Thomson & Fenger, 2001), reported only when the sidebands are resolvable **and** are true peaks |
+
+## GUI (original tool)
+
+```bash
+cd Predictive_maintenance_module && python gui.py
+```
 
 ### Initial screen
+![GUI](figs/gui_start.png)
 
-![Alt text](figs/gui_start.png)
+### High-frequency FFT
+![FFT](figs/fft_hf.png)
 
-### High frequency fft
+### Power spectral density (PSD)
+![PSD](figs/psd_pp.png)
 
-![Alt text](figs/fft_hf.png)
+### Compare measurements
+![Compare](figs/comparacion.png)
 
-### Power spectrum density (PSD)
+## Development
 
-![Alt text](figs/psd_pp.png)
+```bash
+pytest              # 37 tests on synthetic signals with known answers
+ruff check . && ruff format --check src tests examples
+```
 
-## Comparar 
+## References
 
-![Alt text](figs/comparacion.png)
+* W. T. Thomson, M. Fenger, "Current signature analysis to detect induction motor
+  faults", *IEEE Industry Applications Magazine*, 7(4), 2001.
+* M. E. H. Benbouzid, "A review of induction motors signature analysis as a medium
+  for faults detection", *IEEE Trans. Industrial Electronics*, 47(5), 2000.
+* R. R. Schoen et al., "Motor bearing damage detection using stator current
+  monitoring", *IEEE Trans. Industry Applications*, 31(6), 1995.
