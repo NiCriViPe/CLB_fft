@@ -1,4 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
 
-Predictive_maintenance_module/__pycache__/POST_proceso.cpython-311.pyc
-*.csv
+# Environments
 /venv
+/.venv
+
+# Raw and intermediate measurement files (keep compressed archives only)
+*.csv
+!tests/data/*.csv
+results/
+
+# Notebooks / OS / editor
+.ipynb_checkpoints/
+*.lnk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
