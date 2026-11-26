@@ -23,3 +23,6 @@ results/
 Thumbs.db
 .vscode/
 .idea/
+
+# GUI outputs written next to the measurements
+*_DIAGNOSTICO.txt

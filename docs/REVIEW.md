@@ -108,7 +108,7 @@ Items are ordered by value per effort within each track.
 
 | ID | Proposal | Why it matters |
 |---|---|---|
-| B1 | **Rewire the Tk GUI onto `clb_fft`** and delete the duplicated legacy functions. | Removes two parallel implementations. |
+| B1 | **Rewire the Tk GUI onto `clb_fft`** (started: the "Diagnóstico" button uses it) and delete the duplicated legacy functions. | Removes two parallel implementations. |
 | B2 | **Fast storage**: convert CSV to Parquet/NPZ once (about 10× smaller and faster), with metadata (asset, load, speed) in a sidecar JSON. | The 250 MB of CSV per measurement is the main bottleneck. |
 | B3 | **Report generation**: one HTML/PDF per measurement with the spectra, the labelled peak table, the quality report and the indicators. | This is what a maintenance planner actually consumes. |
 | B4 | **Responsive GUI**: run jobs in a worker thread or process, add a progress bar, keep the plots interactive. Or move to a small web UI (Streamlit/Panel) that is easier to show in a portfolio. | Fixes R6, and works without a Windows install. |

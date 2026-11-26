@@ -10,7 +10,7 @@ from pathlib import Path
 # from tkinter import *
 # Explicit imports to satisfy Flake8
 from tkinter import Tk, Canvas, Button, PhotoImage
-from tkinter import filedialog,simpledialog
+from tkinter import filedialog,simpledialog,messagebox
 
 
 
@@ -221,6 +221,57 @@ button_6.place(
 #     width=130.0,
 #     height=30.0
 # )
+
+def diagnostico_automatico():
+    """Botón 'Diagnóstico': calidad de la medición, espectro con frecuencias
+    de falla marcadas e indicador de barras rotas (paquete clb_fft)."""
+    v = filedialog.askopenfilename(
+        initialdir=INIT_PATH,
+        title="Seleccionar medición (primer .csv de la exportación)",
+        filetypes=(("Mediciones PQ ONE", "*.csv *.tar.xz *.tar"),
+                   ("csv files", "*.csv"), ("all files", "*.*")))
+    if not v:
+        return
+    polos = simpledialog.askinteger(
+        "Diagnóstico", "N° de polos del motor (ej. 2, 4, 6):", minvalue=2, maxvalue=48)
+    if not polos:
+        return
+    rpm = simpledialog.askfloat(
+        "Diagnóstico", "Velocidad medida del eje [rpm]:", minvalue=1.0)
+    if not rpm:
+        return
+    window.config(cursor="watch")
+    window.update()
+    try:
+        import matplotlib.pyplot as plt
+        import diagnostico  # importación diferida: la GUI abre rápido
+        texto, _, _ = diagnostico.analizar(v, polos, rpm)
+    except Exception as e:  # mostrar el error en vez de cerrar la GUI
+        messagebox.showerror("Diagnóstico", f"No se pudo completar el diagnóstico:\n\n{e}")
+        return
+    finally:
+        window.config(cursor="")
+    plt.show(block=False)
+    messagebox.showinfo("Diagnóstico", texto)
+
+
+button_diag = Button(
+    window,
+    text="Diagnóstico",
+    command=diagnostico_automatico,
+    bg="#F4A26B",
+    activebackground="#E8915A",
+    fg="#000000",
+    font=("Courier New", 11, "bold"),
+    borderwidth=1,
+    relief="raised",
+)
+button_diag.place(
+    x=30.0,
+    y=178.0,
+    width=130.0,
+    height=30.0
+)
 
 window.resizable(False, False)
 window.mainloop()

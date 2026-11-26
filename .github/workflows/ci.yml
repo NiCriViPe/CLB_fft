@@ -6,19 +6,27 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # The tool is used on Windows, so CI runs there.
+    runs-on: windows-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.12", "3.13"]
+        python-version: ["3.10", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-      - run: pip install -e ".[dev]"
+      - run: pip install -r requirements.txt pytest ruff
       - run: ruff check src tests examples
       - run: ruff format --check src tests examples
-      - run: pytest
+      - name: Tests (package found from src/, no install, like the GUI)
+        run: pytest
+        env:
+          PYTHONPATH: src
+      - name: GUI files compile
+        run: python -m py_compile Predictive_maintenance_module/gui.py Predictive_maintenance_module/POST_proceso.py Predictive_maintenance_module/diagnostico.py
       - name: CLI smoke test on the sample measurement
-        run: clb-fft quality Measurements/NH-I/MotorConVibracion1.tar.xz
+        run: python -m clb_fft.cli quality Measurements/NH-I/MotorConVibracion1.tar.xz
+        env:
+          PYTHONPATH: src

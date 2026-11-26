@@ -27,18 +27,43 @@ Faults addressed:
 Diagnosis should (preferably) be confirmed by an electrical engineer able to
 interpret current spectra. The automatic indicators are aids, not verdicts.
 
-## Quick start
+## Quick start (Windows)
 
-```bash
-python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+1. Install **Python 3.10 or newer** from [python.org](https://www.python.org/downloads/windows/).
+   During installation, tick **"Add python.exe to PATH"**. Tkinter is included.
+2. Install the dependencies **once**. Open a terminal in the repository folder and run:
 
-# Data quality: record joints, supply-frequency drift, usable resolution
-clb-fft quality Measurements/NH-I/MotorConVibracion1.tar.xz
+   ```bat
+   pip install -r requirements.txt
+   ```
 
-# Full analysis: spectra with fault-frequency markers, peak table, broken-bar indicator
-clb-fft analyze Measurements/NH-I/MotorConVibracion1.tar.xz \
-    --pole-pairs 2 --speed 1485 --rotor-bars 28 --out results/
+3. Open the GUI: **double-click `Predictive_maintenance_module\Abrir_GUI.bat`**, or run
+
+   ```bat
+   cd Predictive_maintenance_module
+   python gui.py
+   ```
+
+No other installation is needed: the GUI finds the analysis package in `src\` by itself.
+
+### GUI buttons
+
+| Button | What it does |
+|---|---|
+| **Ejecutar** | Joins the export parts (`x.csv`, `x_001.csv`, ...) and saves the current waveform (`_y-t_DATA.csv`) |
+| **Comparar** | Overlays the PSDs of several measurements |
+| **Low / High Freq-FFT** | Amplitude spectrum of the low band (0–500 Hz, anti-aliased) or the full band |
+| **PDS** | Welch power spectral density with detected peaks |
+| **Diagnóstico** *(new)* | Asks for the number of poles and the measured speed. Shows the measurement quality, the spectrum with the expected fault frequencies marked, and the broken-bar indicator. Saves `<measurement>_DIAGNOSTICO.txt` and `<measurement>_PICOS.csv` next to the data |
+
+## Command line and Python API (optional)
+
+The same analysis can be run without the GUI, for batches of files:
+
+```bat
+pip install -e .
+clb-fft quality Measurements\NH-I\MotorConVibracion1.tar.xz
+clb-fft analyze Measurements\NH-I\MotorConVibracion1.tar.xz --pole-pairs 2 --speed 1485 --out results
 ```
 
 `analyze` writes `spectrum_low.png`, `spectrum_fundamental.png`, `psd_full.png`,
@@ -46,14 +71,12 @@ clb-fft analyze Measurements/NH-I/MotorConVibracion1.tar.xz \
 and `summary.json`. Use your machine's nameplate data: the values above are only
 an example.
 
-As a library:
-
 ```python
 from clb_fft import load_hioki_csv, averaged_amplitude_spectrum, decimate, Motor
 from clb_fft.diagnosis import assess_broken_bars
 
-rec = load_hioki_csv("path/to/Measurement.csv", channels=["I1"])  # finds _001, _002, ...
-x, fs = decimate(rec["I1"], rec.fs, 20)                             # anti-aliased
+rec = load_hioki_csv(r"C:\path\to\Measurement.csv", channels=["I1"])  # finds _001, _002, ...
+x, fs = decimate(rec["I1"], rec.fs, 20)                                  # anti-aliased
 spec = averaged_amplitude_spectrum(x, fs, resolution=0.1)
 motor = Motor.from_speed(f1=50.0, pole_pairs=2, speed_rpm=1485)
 print(assess_broken_bars(spec, motor.f1, motor.slip).summary())
@@ -88,11 +111,7 @@ roadmap.
 | Fault frequencies | Broken bars `f1(1±2ks)`; mixed eccentricity `f1±k·fr`; rotor slot / dynamic eccentricity `f1[(kR±nd)(1−s)/p ± nω]`; shorted turns `f1[n(1−s)/p ± k]`; bearings `\|f1 ± m·f_v\|` from geometry |
 | Indicator | Broken-bar sideband level vs. f1 (after Thomson & Fenger, 2001), reported only when the sidebands are resolvable **and** are true peaks |
 
-## GUI (original tool)
-
-```bash
-cd Predictive_maintenance_module && python gui.py
-```
+## GUI screenshots
 
 ### Initial screen
 ![GUI](figs/gui_start.png)
@@ -108,10 +127,14 @@ cd Predictive_maintenance_module && python gui.py
 
 ## Development
 
-```bash
-pytest              # 37 tests on synthetic signals with known answers
+```bat
+pip install pytest ruff
+set PYTHONPATH=src
+pytest              &:: 40 tests on synthetic signals with known answers
 ruff check . && ruff format --check src tests examples
 ```
+
+CI runs the same steps on Windows for every push.
 
 ## References
 
